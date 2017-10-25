@@ -21,7 +21,7 @@ f = function (x) {
   #point <- x %>% xml_find_all("//nativeExtBox") #  sometimes a local projection is defined
   #matrix(xml_double(xml_children(point))[1:4], ncol=2, byrow = TRUE)
   pol <- x %>% xml_find_all("//GeoBndBox") # wgs84 bbox
-  matrix(xml_double(xml_children(pol))[2:5], ncol=2, byrow = TRUE)
+  extent(matrix(xml_double(xml_children(pol))[2:5], ncol=2, byrow = TRUE))
 }
 
 extents <- lapply(myfiles, f) # retrieve extents from all files and save as a list
@@ -32,13 +32,11 @@ extents <- lapply(myfiles, f) # retrieve extents from all files and save as a li
 library(spex)
 poly.lis = list()
 for (i in 1:length(extents)) {
-  poly.lis[[i]] <- spex(extents[[i]], crs= "+proj=longlat +datum=WGS84", .id = lis.name[i])
+  poly.lis[[i]] <- spex(extents[[i]], crs= "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0", .id = lis.name[i])
 }
 
 # merge polygons into one object
 m <- do.call(bind, poly.lis) 
-# Dont know but the crs argument in the spex function doesnt seem to work. Add projection.
-proj4string(m) <- CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0") 
 
 # match up with the correct IDs (ie file names)
 library(maptools)
