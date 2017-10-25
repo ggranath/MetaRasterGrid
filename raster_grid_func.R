@@ -37,6 +37,8 @@ for (i in 1:length(extents)) {
 
 # merge polygons into one object
 m <- do.call(bind, poly.lis) 
+# Dont know but the crs argument in the spex function doesnt seem to work. Add projection.
+proj4string(m) <- CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0") 
 
 # match up with the correct IDs (ie file names)
 library(maptools)
@@ -45,9 +47,29 @@ m2 <- spChFIDs(m, lis.name)
 # check
 getSpPPolygonsIDSlots(m2) 
 
+# To display file names in Google maps a NAME column
+# has to be added 
+m2$NAME <- lis.name 
+# remove the other columns (there is one per file name....dont know why)
+namecol <- which(!(colnames(m2@data) == "NAME"))
+m2 <- m2[,-namecol]
+
 # plot on google map
 # write kml
 plot(m2) # quick check
 library(rgdal)
-m2$NAME <- lis.name # NAME needed to display file names in Google maps
 writeOGR(m2, dsn="raster_overview.kml", layer = "NAME",  driver="KML") 
+
+## Which raster file covers your location(s)?
+
+# if there is a data frame with coordinates of locations, first make a point df
+pts <- data.frame(lon = c(13.1623, 13.13827), 
+                  lat = c(55.42784 ,55.48858), loc = c("A","B"))
+loc <- SpatialPoints(pts[, c("lon","lat")])
+
+# assign projection
+proj4string(loc) <- CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0") 
+
+# do an intersection (points in polygon)
+# NAME gives the the file name for each point (NA if not covered)
+cbind(pts, over(loc, m2))
